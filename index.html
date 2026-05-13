@@ -17,6 +17,108 @@
     <a href="reports.html">View Reports</a> | 
     <a href="staff.html">Manage Staff</a>
 
-    <script src="script.js"></script>
+    <script>
+        let staff = [];
+        let attendance = [];
+        
+        function loadData() {
+            let savedStaff = localStorage.getItem('staff');
+            let savedAttendance = localStorage.getItem('attendance');
+            
+            if (savedStaff) {
+                staff = JSON.parse(savedStaff);
+            }
+            if (savedAttendance) {
+                attendance = JSON.parse(savedAttendance);
+            }
+        }
+        
+        function saveData() {
+            localStorage.setItem('staff', JSON.stringify(staff));
+            localStorage.setItem('attendance', JSON.stringify(attendance));
+        }
+        
+        function showDate() {
+            let today = new Date();
+            let dateString = today.getDate() + '/' + (today.getMonth()+1) + '/' + today.getFullYear();
+            let dateElem = document.getElementById('date');
+            if (dateElem) {
+                dateElem.textContent = dateString;
+            }
+        }
+        
+        function displayStaffForAttendance() {
+            loadData();
+            
+            let container = document.getElementById('staffList');
+            if (!container) return;
+            
+            let today = new Date();
+            let todayString = today.getDate() + '/' + (today.getMonth()+1) + '/' + today.getFullYear();
+            
+            let todayRecord = null;
+            for (let i = 0; i < attendance.length; i++) {
+                if (attendance[i].date === todayString) {
+                    todayRecord = attendance[i];
+                    break;
+                }
+            }
+            
+            if (staff.length === 0) {
+                container.innerHTML = '<p>No staff added yet. <a href="staff.html">Click here to add staff</a></p>';
+                return;
+            }
+            
+            let html = '<h3>Mark Attendance</h3>';
+            for (let i = 0; i < staff.length; i++) {
+                let isChecked = false;
+                if (todayRecord && todayRecord.records[staff[i].name]) {
+                    isChecked = true;
+                }
+                html += '<div>';
+                html += staff[i].name + ' (' + staff[i].role + ') ';
+                html += '<label>Present: <input type="checkbox" id="chk_' + i + '" ' + (isChecked ? 'checked' : '') + '></label>';
+                html += '</div>';
+            }
+            container.innerHTML = html;
+        }
+        
+        function saveAttendance() {
+            loadData();
+            
+            let today = new Date();
+            let todayString = today.getDate() + '/' + (today.getMonth()+1) + '/' + today.getFullYear();
+            
+            let records = {};
+            for (let i = 0; i < staff.length; i++) {
+                let chk = document.getElementById('chk_' + i);
+                if (chk) {
+                    records[staff[i].name] = chk.checked;
+                }
+            }
+            
+            let found = false;
+            for (let i = 0; i < attendance.length; i++) {
+                if (attendance[i].date === todayString) {
+                    attendance[i].records = records;
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                attendance.push({
+                    date: todayString,
+                    records: records
+                });
+            }
+            
+            saveData();
+            alert('Attendance saved! Total records: ' + attendance.length);
+        }
+        
+        showDate();
+        displayStaffForAttendance();
+    </script>
 </body>
 </html>
