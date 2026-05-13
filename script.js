@@ -1,144 +1,235 @@
-// Load staff from storage
-let staff = JSON.parse(localStorage.getItem('staff')) || [];
-let attendance = JSON.parse(localStorage.getItem('attendance')) || [];
+// Simple Attendance System
+let staff = [];
+let attendance = [];
+
+// Load data from localStorage
+function loadData() {
+    let savedStaff = localStorage.getItem('staff');
+    let savedAttendance = localStorage.getItem('attendance');
+    
+    if (savedStaff) {
+        staff = JSON.parse(savedStaff);
+    } else {
+        staff = [];
+    }
+    
+    if (savedAttendance) {
+        attendance = JSON.parse(savedAttendance);
+    } else {
+        attendance = [];
+    }
+}
+
+// Save data to localStorage
+function saveData() {
+    localStorage.setItem('staff', JSON.stringify(staff));
+    localStorage.setItem('attendance', JSON.stringify(attendance));
+}
 
 // Show today's date
 function showDate() {
-    const dateElem = document.getElementById('date');
+    let today = new Date();
+    let dateString = today.getDate() + '/' + (today.getMonth()+1) + '/' + today.getFullYear();
+    let dateElem = document.getElementById('date');
     if (dateElem) {
-        dateElem.textContent = new Date().toLocaleDateString();
+        dateElem.textContent = dateString;
     }
 }
 
-// Display staff list for attendance
+// Display staff with checkboxes (for index.html)
 function displayStaffForAttendance() {
-    const container = document.getElementById('staffList');
+    let container = document.getElementById('staffList');
     if (!container) return;
     
-    const today = new Date().toLocaleDateString();
-    const todayAttendance = attendance.find(a => a.date === today) || {};
+    loadData();
     
-    container.innerHTML = '<h3>Mark Attendance</h3>';
-    staff.forEach((member, index) => {
-        const isPresent = todayAttendance[member.name] || false;
-        container.innerHTML += `
-            <div>
-                ${member.name} (${member.role})
-                <label>Present: <input type="checkbox" id="chk_${index}" ${isPresent ? 'checked' : ''}></label>
-            </div>
-        `;
-    });
-}
-
-// Save today's attendance
-function saveAttendance() {
-    const today = new Date().toLocaleDateString();
-    const todayRecord = {};
+    let today = new Date();
+    let todayString = today.getDate() + '/' + (today.getMonth()+1) + '/' + today.getFullYear();
     
-    staff.forEach((member, index) => {
-        const chk = document.getElementById(`chk_${index}`);
-        if (chk) {
-            todayRecord[member.name] = chk.checked;
+    // Find today's attendance record
+    let todayRecord = null;
+    for (let i = 0; i < attendance.length; i++) {
+        if (attendance[i].date === todayString) {
+            todayRecord = attendance[i];
+            break;
         }
-    });
+    }
     
-    // Remove old record for today if exists
-    const filtered = attendance.filter(a => a.date !== today);
-    filtered.push({ date: today, records: todayRecord });
-    attendance = filtered;
+    if (staff.length === 0) {
+        container.innerHTML = '<p>No staff added yet. Go to Manage Staff to add people.</p>';
+        return;
+    }
     
-    localStorage.setItem('attendance', JSON.stringify(attendance));
-    alert('Attendance saved!');
+    let html = '<h3>Mark Attendance</h3>';
+    for (let i = 0; i < staff.length; i++) {
+        let isChecked = false;
+        if (todayRecord && todayRecord.records[staff[i].name]) {
+            isChecked = true;
+        }
+        html += '<div>';
+        html += staff[i].name + ' (' + staff[i].role + ') ';
+        html += '<label>Present: <input type="checkbox" id="chk_' + i + '" ' + (isChecked ? 'checked' : '') + '></label>';
+        html += '</div>';
+    }
+    
+    container.innerHTML = html;
 }
 
-// Add new staff
+// Save attendance
+function saveAttendance() {
+    loadData();
+    
+    let today = new Date();
+    let todayString = today.getDate() + '/' + (today.getMonth()+1) + '/' + today.getFullYear();
+    
+    let records = {};
+    for (let i = 0; i < staff.length; i++) {
+        let chk = document.getElementById('chk_' + i);
+        if (chk) {
+            records[staff[i].name] = chk.checked;
+        }
+    }
+    
+    // Check if we already have a record for today
+    let found = false;
+    for (let i = 0; i < attendance.length; i++) {
+        if (attendance[i].date === todayString) {
+            attendance[i].records = records;
+            found = true;
+            break;
+        }
+    }
+    
+    if (!found) {
+        attendance.push({
+            date: todayString,
+            records: records
+        });
+    }
+    
+    saveData();
+    alert('Attendance saved successfully!');
+}
+
+// Add staff (for staff.html)
 function addStaff() {
-    const name = document.getElementById('staffName')?.value;
-    const role = document.getElementById('staffRole')?.value;
+    let nameInput = document.getElementById('staffName');
+    let roleInput = document.getElementById('staffRole');
+    
+    let name = nameInput ? nameInput.value : '';
+    let role = roleInput ? roleInput.value : '';
     
     if (name && role) {
-        staff.push({ name, role });
-        localStorage.setItem('staff', JSON.stringify(staff));
+        loadData();
+        staff.push({ name: name, role: role });
+        saveData();
         displayStaffList();
-        document.getElementById('staffName').value = '';
-        document.getElementById('staffRole').value = '';
+        
+        if (nameInput) nameInput.value = '';
+        if (roleInput) roleInput.value = '';
     } else {
-        alert('Please fill both fields');
+        alert('Please enter both name and role');
     }
 }
 
-// Display staff list (for manage page)
+// Display staff list (for staff.html)
 function displayStaffList() {
-    const container = document.getElementById('staffList');
+    let container = document.getElementById('staffList');
     if (!container) return;
     
-    container.innerHTML = '';
-    staff.forEach((member, index) => {
-        container.innerHTML += `
-            <div>
-                ${member.name} - ${member.role}
-                <button onclick="removeStaff(${index})">Remove</button>
-            </div>
-        `;
-    });
+    loadData();
+    
+    if (staff.length === 0) {
+        container.innerHTML = '<p>No staff members added yet.</p>';
+        return;
+    }
+    
+    let html = '';
+    for (let i = 0; i < staff.length; i++) {
+        html += '<div>';
+        html += staff[i].name + ' - ' + staff[i].role;
+        html += ' <button onclick="removeStaff(' + i + ')">Remove</button>';
+        html += '</div>';
+    }
+    container.innerHTML = html;
 }
 
 // Remove staff
 function removeStaff(index) {
     if (confirm('Remove this staff member?')) {
+        loadData();
         staff.splice(index, 1);
-        localStorage.setItem('staff', JSON.stringify(staff));
+        saveData();
         displayStaffList();
     }
 }
 
-// Generate report
+// Generate report (for reports.html)
 function generateReport() {
-    const start = document.getElementById('startDate')?.value;
-    const end = document.getElementById('endDate')?.value;
-    const container = document.getElementById('reportResult');
+    let startInput = document.getElementById('startDate');
+    let endInput = document.getElementById('endDate');
+    let container = document.getElementById('reportResult');
+    
+    if (!startInput || !endInput || !container) return;
+    
+    let start = startInput.value;
+    let end = endInput.value;
     
     if (!start || !end) {
-        container.innerHTML = '<p>Please select start and end dates</p>';
+        container.innerHTML = '<p>Please select both start and end dates</p>';
         return;
     }
     
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    loadData();
     
-    const filteredAttendance = attendance.filter(a => {
-        const aDate = new Date(a.date);
-        return aDate >= startDate && aDate <= endDate;
-    });
+    // Convert dates for comparison
+    let startParts = start.split('-');
+    let endParts = end.split('-');
+    let startDateStr = parseInt(startParts[2]) + '/' + parseInt(startParts[1]) + '/' + startParts[0];
+    let endDateStr = parseInt(endParts[2]) + '/' + parseInt(endParts[1]) + '/' + endParts[0];
+    
+    // Filter attendance by date range
+    let filteredAttendance = [];
+    for (let i = 0; i < attendance.length; i++) {
+        let attDate = attendance[i].date;
+        let attParts = attDate.split('/');
+        let attDateStr = attParts[2] + '-' + attParts[1] + '-' + attParts[0];
+        
+        if (attDateStr >= start && attDateStr <= end) {
+            filteredAttendance.push(attendance[i]);
+        }
+    }
     
     if (filteredAttendance.length === 0) {
-        container.innerHTML = '<p>No attendance records in this period</p>';
+        container.innerHTML = '<p>No attendance records in this period. Make sure you have saved attendance for these dates.</p>';
         return;
     }
     
-    let html = '<h3>Attendance Report</h3><table border="1"><tr><th>Date</th>';
+    // Build report table
+    let html = '<h3>Attendance Report</h3>';
+    html += '<table border="1">';
+    html += '<tr><th>Date</th>';
     
-    // Add staff headers
-    staff.forEach(member => {
-        html += `<th>${member.name}</th>`;
-    });
+    for (let i = 0; i < staff.length; i++) {
+        html += '<th>' + staff[i].name + '</th>';
+    }
     html += '</tr>';
     
-    // Add each day's records
-    filteredAttendance.forEach(day => {
-        html += `<tr><td>${day.date}</td>`;
-        staff.forEach(member => {
-            const present = day.records[member.name] ? '✅' : '❌';
-            html += `<td>${present}</td>`;
-        });
+    for (let i = 0; i < filteredAttendance.length; i++) {
+        html += '<tr>';
+        html += '<td>' + filteredAttendance[i].date + '</td>';
+        for (let j = 0; j < staff.length; j++) {
+            let present = filteredAttendance[i].records[staff[j].name];
+            html += '<td>' + (present ? '✅' : '❌') + '</td>';
+        }
         html += '</tr>';
-    });
+    }
     
     html += '</table>';
     container.innerHTML = html;
 }
 
-// Initialize pages based on which page is open
+// Page initialization
 if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname === '/attendance-system/') {
     showDate();
     displayStaffForAttendance();
