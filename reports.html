@@ -5,18 +5,17 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>📊 Attendance Reports</h1>
-    
-    <label>Start Date: <input type="date" id="startDate"></label>
-    <label>End Date: <input type="date" id="endDate"></label>
-    <button onclick="generateReport()">Generate Report</button>
-    
-    <div id="reportResult"></div>
-    
-    <br><a href="index.html">← Back to Attendance</a>
-    
+    <div id="app"></div>
+
     <script>
-        // Staff list
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        
+        if (!loggedInUser) {
+            window.location.href = 'login.html';
+        }
+        
+        const user = JSON.parse(loggedInUser);
+        
         let staff = [];
         let attendance = [];
         
@@ -26,27 +25,21 @@
             
             if (savedStaff) {
                 staff = JSON.parse(savedStaff);
-            } else {
-                staff = [];
             }
-            
             if (savedAttendance) {
                 attendance = JSON.parse(savedAttendance);
-            } else {
-                attendance = [];
             }
-            
-            console.log("Loaded staff:", staff);
-            console.log("Loaded attendance:", attendance);
+        }
+        
+        function logout() {
+            localStorage.removeItem('loggedInUser');
+            window.location.href = 'login.html';
         }
         
         function generateReport() {
-            let startInput = document.getElementById('startDate');
-            let endInput = document.getElementById('endDate');
-            let container = document.getElementById('reportResult');
-            
-            let start = startInput.value;
-            let end = endInput.value;
+            const start = document.getElementById('startDate')?.value;
+            const end = document.getElementById('endDate')?.value;
+            const container = document.getElementById('reportResult');
             
             if (!start || !end) {
                 container.innerHTML = '<p>Please select both start and end dates</p>';
@@ -55,39 +48,29 @@
             
             loadData();
             
-            // Convert HTML date (YYYY-MM-DD) to your format (DD/MM/YYYY)
             let startParts = start.split('-');
             let endParts = end.split('-');
             let startDateStr = startParts[2] + '/' + startParts[1] + '/' + startParts[0];
             let endDateStr = endParts[2] + '/' + endParts[1] + '/' + endParts[0];
             
-            console.log("Date range:", startDateStr, "to", endDateStr);
-            
-            // Filter attendance
             let filteredAttendance = [];
             for (let i = 0; i < attendance.length; i++) {
                 let attDate = attendance[i].date;
-                console.log("Checking date:", attDate);
-                
-                // Compare dates as strings
                 if (attDate >= startDateStr && attDate <= endDateStr) {
                     filteredAttendance.push(attendance[i]);
                 }
             }
             
-            console.log("Filtered records:", filteredAttendance.length);
-            
             if (filteredAttendance.length === 0) {
-                container.innerHTML = '<p>No attendance records in this period. Total records in system: ' + attendance.length + '</p>';
+                container.innerHTML = '<p>No attendance records in this period.</p>';
                 return;
             }
             
             if (staff.length === 0) {
-                container.innerHTML = '<p>No staff members found. Please add staff first.</p>';
+                container.innerHTML = '<p>No staff members found.</p>';
                 return;
             }
             
-            // Build table
             let html = '<h3>Attendance Report</h3>';
             html += '<table border="1" style="border-collapse: collapse; width: 100%;">';
             html += '<tr style="background-color: #4CAF50; color: white;">';
@@ -111,6 +94,33 @@
             html += '</table>';
             container.innerHTML = html;
         }
+        
+        function displayPage() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div style="max-width: 1000px; margin: 0 auto; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #4CAF50; padding-bottom: 10px;">
+                        <h1>📊 Attendance Reports</h1>
+                        <div>
+                            <span>👤 ${user.name} (${user.role})</span>
+                            <button onclick="logout()" style="background-color: #f44336;">Logout</button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 20px 0;">
+                        <label>Start Date: <input type="date" id="startDate"></label>
+                        <label>End Date: <input type="date" id="endDate"></label>
+                        <button onclick="generateReport()">Generate Report</button>
+                    </div>
+                    
+                    <div id="reportResult"></div>
+                    
+                    <br><a href="index.html">← Back to Attendance</a>
+                </div>
+            `;
+        }
+        
+        displayPage();
     </script>
 </body>
 </html>
