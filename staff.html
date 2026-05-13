@@ -5,17 +5,121 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>👥 Manage Staff</h1>
-    
-    <input type="text" id="staffName" placeholder="Staff name">
-    <input type="text" id="staffRole" placeholder="Role (Teacher/Staff)">
-    <button onclick="addStaff()">Add Staff</button>
-    
-    <h3>Staff List</h3>
-    <div id="staffList"></div>
-    
-    <br><a href="index.html">← Back to Attendance</a>
-    
-    <script src="script.js"></script>
+    <div id="app"></div>
+
+    <script>
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        
+        if (!loggedInUser) {
+            window.location.href = 'login.html';
+        }
+        
+        const user = JSON.parse(loggedInUser);
+        
+        // Only admin can access this page
+        if (user.role !== 'admin') {
+            document.body.innerHTML = `
+                <div style="max-width: 600px; margin: 100px auto; padding: 20px; text-align: center;">
+                    <h1>⛔ Access Denied</h1>
+                    <p>You do not have permission to manage staff.</p>
+                    <a href="index.html">Go back to attendance</a>
+                </div>
+            `;
+        } else {
+            // Show staff management page
+            let staff = [];
+            
+            function loadData() {
+                let savedStaff = localStorage.getItem('staff');
+                if (savedStaff) {
+                    staff = JSON.parse(savedStaff);
+                }
+            }
+            
+            function saveData() {
+                localStorage.setItem('staff', JSON.stringify(staff));
+            }
+            
+            function logout() {
+                localStorage.removeItem('loggedInUser');
+                window.location.href = 'login.html';
+            }
+            
+            function displayStaffPage() {
+                const app = document.getElementById('app');
+                app.innerHTML = `
+                    <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h1>👥 Manage Staff</h1>
+                            <div>
+                                <span>👤 ${user.name} (Admin)</span>
+                                <button onclick="logout()" style="background-color: #f44336;">Logout</button>
+                            </div>
+                        </div>
+                        
+                        <div style="margin: 20px 0;">
+                            <input type="text" id="staffName" placeholder="Staff name">
+                            <input type="text" id="staffRole" placeholder="Role (Teacher/Staff)">
+                            <button onclick="addStaff()">Add Staff</button>
+                        </div>
+                        
+                        <h3>Staff List</h3>
+                        <div id="staffList"></div>
+                        
+                        <br><a href="index.html">← Back to Attendance</a>
+                    </div>
+                `;
+                displayStaffList();
+            }
+            
+            function addStaff() {
+                const name = document.getElementById('staffName')?.value;
+                const role = document.getElementById('staffRole')?.value;
+                
+                if (name && role) {
+                    loadData();
+                    staff.push({ name, role });
+                    saveData();
+                    displayStaffList();
+                    document.getElementById('staffName').value = '';
+                    document.getElementById('staffRole').value = '';
+                } else {
+                    alert('Please fill both fields');
+                }
+            }
+            
+            function displayStaffList() {
+                const container = document.getElementById('staffList');
+                if (!container) return;
+                
+                loadData();
+                
+                if (staff.length === 0) {
+                    container.innerHTML = '<p>No staff members added yet.</p>';
+                    return;
+                }
+                
+                let html = '';
+                for (let i = 0; i < staff.length; i++) {
+                    html += '<div>';
+                    html += staff[i].name + ' - ' + staff[i].role;
+                    html += ' <button onclick="removeStaff(' + i + ')">Remove</button>';
+                    html += '</div>';
+                }
+                container.innerHTML = html;
+            }
+            
+            function removeStaff(index) {
+                if (confirm('Remove this staff member?')) {
+                    loadData();
+                    staff.splice(index, 1);
+                    saveData();
+                    displayStaffList();
+                }
+            }
+            
+            displayStaffPage();
+        }
+    </script>
 </body>
 </html>
