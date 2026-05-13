@@ -15,6 +15,102 @@
     
     <br><a href="index.html">← Back to Attendance</a>
     
-    <script src="script.js"></script>
+    <script>
+        // Staff list
+        let staff = [];
+        let attendance = [];
+        
+        function loadData() {
+            let savedStaff = localStorage.getItem('staff');
+            let savedAttendance = localStorage.getItem('attendance');
+            
+            if (savedStaff) {
+                staff = JSON.parse(savedStaff);
+            } else {
+                staff = [];
+            }
+            
+            if (savedAttendance) {
+                attendance = JSON.parse(savedAttendance);
+            } else {
+                attendance = [];
+            }
+            
+            console.log("Loaded staff:", staff);
+            console.log("Loaded attendance:", attendance);
+        }
+        
+        function generateReport() {
+            let startInput = document.getElementById('startDate');
+            let endInput = document.getElementById('endDate');
+            let container = document.getElementById('reportResult');
+            
+            let start = startInput.value;
+            let end = endInput.value;
+            
+            if (!start || !end) {
+                container.innerHTML = '<p>Please select both start and end dates</p>';
+                return;
+            }
+            
+            loadData();
+            
+            // Convert HTML date (YYYY-MM-DD) to your format (DD/MM/YYYY)
+            let startParts = start.split('-');
+            let endParts = end.split('-');
+            let startDateStr = startParts[2] + '/' + startParts[1] + '/' + startParts[0];
+            let endDateStr = endParts[2] + '/' + endParts[1] + '/' + endParts[0];
+            
+            console.log("Date range:", startDateStr, "to", endDateStr);
+            
+            // Filter attendance
+            let filteredAttendance = [];
+            for (let i = 0; i < attendance.length; i++) {
+                let attDate = attendance[i].date;
+                console.log("Checking date:", attDate);
+                
+                // Compare dates as strings
+                if (attDate >= startDateStr && attDate <= endDateStr) {
+                    filteredAttendance.push(attendance[i]);
+                }
+            }
+            
+            console.log("Filtered records:", filteredAttendance.length);
+            
+            if (filteredAttendance.length === 0) {
+                container.innerHTML = '<p>No attendance records in this period. Total records in system: ' + attendance.length + '</p>';
+                return;
+            }
+            
+            if (staff.length === 0) {
+                container.innerHTML = '<p>No staff members found. Please add staff first.</p>';
+                return;
+            }
+            
+            // Build table
+            let html = '<h3>Attendance Report</h3>';
+            html += '<table border="1" style="border-collapse: collapse; width: 100%;">';
+            html += '<tr style="background-color: #4CAF50; color: white;">';
+            html += '<th style="padding: 10px;">Date</th>';
+            
+            for (let i = 0; i < staff.length; i++) {
+                html += '<th style="padding: 10px;">' + staff[i].name + '</th>';
+            }
+            html += '</tr>';
+            
+            for (let i = 0; i < filteredAttendance.length; i++) {
+                html += '<tr>';
+                html += '<td style="padding: 10px;">' + filteredAttendance[i].date + '</td>';
+                for (let j = 0; j < staff.length; j++) {
+                    let present = filteredAttendance[i].records[staff[j].name];
+                    html += '<td style="padding: 10px; text-align: center;">' + (present ? '✅' : '❌') + '</td>';
+                }
+                html += '</tr>';
+            }
+            
+            html += '</table>';
+            container.innerHTML = html;
+        }
+    </script>
 </body>
 </html>
