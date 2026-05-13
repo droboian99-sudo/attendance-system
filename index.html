@@ -5,19 +5,21 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>📋 Staff Attendance System</h1>
-    
-    <h2>Today's Date: <span id="date"></span></h2>
-    
-    <div id="staffList"></div>
-    
-    <button onclick="saveAttendance()">Save Today's Attendance</button>
-    
-    <br><br>
-    <a href="reports.html">View Reports</a> | 
-    <a href="staff.html">Manage Staff</a>
+    <div id="app">
+        <!-- Will be filled by JavaScript based on user role -->
+    </div>
 
     <script>
+        // Check if user is logged in
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        
+        if (!loggedInUser) {
+            // Not logged in, go to login page
+            window.location.href = 'login.html';
+        }
+        
+        const user = JSON.parse(loggedInUser);
+        
         let staff = [];
         let attendance = [];
         
@@ -41,21 +43,58 @@
         function showDate() {
             let today = new Date();
             let dateString = today.getDate() + '/' + (today.getMonth()+1) + '/' + today.getFullYear();
-            let dateElem = document.getElementById('date');
-            if (dateElem) {
-                dateElem.textContent = dateString;
-            }
+            return dateString;
         }
         
-        function displayStaffForAttendance() {
+        function logout() {
+            localStorage.removeItem('loggedInUser');
+            window.location.href = 'login.html';
+        }
+        
+        function displayApp() {
+            const app = document.getElementById('app');
+            const todayDate = showDate();
+            
+            let html = `
+                <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #4CAF50; padding-bottom: 10px;">
+                        <h1>📋 Staff Attendance System</h1>
+                        <div>
+                            <span>👤 ${user.name} (${user.role})</span>
+                            <button onclick="logout()" style="margin-left: 10px; background-color: #f44336;">Logout</button>
+                        </div>
+                    </div>
+                    
+                    <h2>Today's Date: ${todayDate}</h2>
+                    
+                    <div id="staffList"></div>
+                    
+                    <button id="saveBtn" onclick="saveAttendance()">Save Today's Attendance</button>
+                    
+                    <br><br>
+                    <a href="reports.html">View Reports</a>
+            `;
+            
+            // Show Manage Staff link only for admin
+            if (user.role === 'admin') {
+                html += ` | <a href="staff.html">Manage Staff</a>`;
+            }
+            
+            // Show warning for non-admin users
+            if (user.role !== 'admin') {
+                html += `<p style="color: orange; margin-top: 20px;">⚠️ You are in read-only mode for staff management. Contact admin to add or remove staff.</p>`;
+            }
+            
+            html += `</div>`;
+            app.innerHTML = html;
+            
+            // Load and display staff for attendance
             loadData();
             
-            let container = document.getElementById('staffList');
+            const container = document.getElementById('staffList');
             if (!container) return;
             
-            let today = new Date();
-            let todayString = today.getDate() + '/' + (today.getMonth()+1) + '/' + today.getFullYear();
-            
+            let todayString = todayDate;
             let todayRecord = null;
             for (let i = 0; i < attendance.length; i++) {
                 if (attendance[i].date === todayString) {
@@ -65,25 +104,42 @@
             }
             
             if (staff.length === 0) {
-                container.innerHTML = '<p>No staff added yet. <a href="staff.html">Click here to add staff</a></p>';
+                if (user.role === 'admin') {
+                    container.innerHTML = '<p>No staff added yet. <a href="staff.html">Click here to add staff</a></p>';
+                } else {
+                    container.innerHTML = '<p>No staff has been added by admin yet.</p>';
+                }
                 return;
             }
             
-            let html = '<h3>Mark Attendance</h3>';
+            let html2 = '<h3>Mark Attendance</h3>';
             for (let i = 0; i < staff.length; i++) {
                 let isChecked = false;
                 if (todayRecord && todayRecord.records[staff[i].name]) {
                     isChecked = true;
                 }
-                html += '<div>';
-                html += staff[i].name + ' (' + staff[i].role + ') ';
-                html += '<label>Present: <input type="checkbox" id="chk_' + i + '" ' + (isChecked ? 'checked' : '') + '></label>';
-                html += '</div>';
+                html2 += '<div>';
+                html2 += staff[i].name + ' (' + staff[i].role + ') ';
+                
+                // Teachers and admins can mark attendance, students cannot
+                if (user.role === 'admin' || user.role === 'teacher') {
+                    html2 += '<label>Present: <input type="checkbox" id="chk_' + i + '" ' + (isChecked ? 'checked' : '') + '></label>';
+                } else {
+                    // Students only see status, cannot change
+                    html2 += '<span> Status: ' + (isChecked ? '✅ Present' : '❌ Absent') + '</span>';
+                }
+                html2 += '</div>';
             }
-            container.innerHTML = html;
+            container.innerHTML = html2;
         }
         
         function saveAttendance() {
+            // Only admin and teachers can save attendance
+            if (user.role !== 'admin' && user.role !== 'teacher') {
+                alert('You do not have permission to save attendance!');
+                return;
+            }
+            
             loadData();
             
             let today = new Date();
@@ -114,11 +170,10 @@
             }
             
             saveData();
-            alert('Attendance saved! Total records: ' + attendance.length);
+            alert('Attendance saved!');
         }
         
-        showDate();
-        displayStaffForAttendance();
+        displayApp();
     </script>
 </body>
 </html>
