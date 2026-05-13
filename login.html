@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Attendance System</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .login-container h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-container input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>📋 Attendance System</h1>
+        <h3>Login</h3>
+        
+        <label>Username:</label>
+        <input type="text" id="username" placeholder="Enter username">
+        
+        <label>Password:</label>
+        <input type="password" id="password" placeholder="Enter password">
+        
+        <button onclick="login()">Login</button>
+        
+        <div id="errorMsg" class="error"></div>
+    </div>
+
+    <script>
+        // User database (you can add more users)
+        const users = {
+            // Admin users
+            "admin": { password: "admin123", role: "admin", name: "School Admin" },
+            "principal": { password: "principal123", role: "admin", name: "Principal" },
+            
+            // Teachers
+            "teacher1": { password: "teacher123", role: "teacher", name: "Mr. Smith" },
+            "teacher2": { password: "teacher123", role: "teacher", name: "Mrs. Jane" },
+            "ian": { password: "ian123", role: "teacher", name: "Ian" },
+            
+            // Students (can only view)
+            "student1": { password: "student123", role: "student", name: "John Student" },
+            "student2": { password: "student123", role: "student", name: "Mary Student" }
+        };
+        
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('errorMsg');
+            
+            if (users[username] && users[username].password === password) {
+                // Save user info
+                const userInfo = {
+                    username: username,
+                    role: users[username].role,
+                    name: users[username].name
+                };
+                localStorage.setItem('loggedInUser', JSON.stringify(userInfo));
+                
+                // Redirect to main page
+                window.location.href = 'index.html';
+            } else {
+                errorDiv.textContent = 'Invalid username or password!';
+            }
+        }
+        
+        // Check if already logged in
+        const savedUser = localStorage.getItem('loggedInUser');
+        if (savedUser) {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
